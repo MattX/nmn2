@@ -1,0 +1,319 @@
+{
+    "info": {
+        "description": "This is v1.0 of the VQA dataset.",
+        "url": "http://visualqa.org",
+        "version": "1.0",
+        "year": 2015,
+        "contributor": "VQA Team",
+        "date_created": "2015-10-02 19:28:08"
+    },
+    "task_type": "Open-Ended",
+    "data_type": "mscoco",
+    "license": {
+        "url": "http://creativecommons.org/licenses/by/4.0/",
+        "name": "Creative Commons Attribution 4.0 International License"
+    },
+    "data_subtype": "train2014",
+    "questions": [
+        {
+            "question": "What sport is this?",
+            "image_id": 6107,
+            "question_id": 61072
+        },
+        {
+            "question": "What is the boy in black doing?",
+            "image_id": 6107,
+            "question_id": 61070
+        },
+        {
+            "question": "What is the boy throwing?",
+            "image_id": 6107,
+            "question_id": 61071
+        },
+        {
+            "question": "Was this picture taken at night?",
+            "image_id": 322,
+            "question_id": 3220
+        },
+        {
+            "question": "Is the Frisbee moving left to right?",
+            "image_id": 322,
+            "question_id": 3221
+        },
+        {
+            "question": "Isn't it to dark to play frisbee?",
+            "image_id": 322,
+            "question_id": 3222
+        },
+        {
+            "question": "Is that owl a candle?",
+            "image_id": 78,
+            "question_id": 780
+        },
+        {
+            "question": "Are the clock and owl made in the same artistic fashion?",
+            "image_id": 78,
+            "question_id": 781
+        },
+        {
+            "question": "What time does the clock say?",
+            "image_id": 78,
+            "question_id": 782
+        },
+        {
+            "question": "What is this game they are playing?",
+            "image_id": 5915,
+            "question_id": 59152
+        },
+        {
+            "question": "What number is the shirt on the man on deck?",
+            "image_id": 5915,
+            "question_id": 59150
+        },
+        {
+            "question": "Is there an audience?",
+            "image_id": 5915,
+            "question_id": 59151
+        },
+        {
+            "question": "How many people are wearing shorts on the field?",
+            "image_id": 5699,
+            "question_id": 56992
+        },
+        {
+            "question": "Is the audience watching?",
+            "image_id": 5699,
+            "question_id": 56990
+        },
+        {
+            "question": "What sport is being played?",
+            "image_id": 5699,
+            "question_id": 56991
+        },
+        {
+            "question": "Lady is walking on street with umbrella to get protect from wind or sun?",
+            "image_id": 4981,
+            "question_id": 49810
+        },
+        {
+            "question": "What is the woman holding in her hands?",
+            "image_id": 4981,
+            "question_id": 49811
+        },
+        {
+            "question": "What season is it?",
+            "image_id": 4981,
+            "question_id": 49812
+        },
+        {
+            "question": "What is under the second umbrella?",
+            "image_id": 2672,
+            "question_id": 26720
+        },
+        {
+            "question": "Are the umbrella plaids?",
+            "image_id": 2672,
+            "question_id": 26721
+        },
+        {
+            "question": "Does this scene take place outdoors?",
+            "image_id": 2672,
+            "question_id": 26722
+        },
+        {
+            "question": "Is the little zebra running or walking?",
+            "image_id": 8320,
+            "question_id": 83200
+        },
+        {
+            "question": "How many zebras?",
+            "image_id": 8320,
+            "question_id": 83201
+        },
+        {
+            "question": "Are the zebras in a stable?",
+            "image_id": 8320,
+            "question_id": 83202
+        },
+        {
+            "question": "What kind of hat is the boy wearing?",
+            "image_id": 1360,
+            "question_id": 13600
+        },
+        {
+            "question": "Is this picture taken in the kitchen?",
+            "image_id": 1360,
+            "question_id": 13601
+        },
+        {
+            "question": "What room is this?",
+            "image_id": 1360,
+            "question_id": 13602
+        },
+        {
+            "question": "Where is the letter M?",
+            "image_id": 9095,
+            "question_id": 90952
+        },
+        {
+            "question": "How many cups on the table?",
+            "image_id": 9095,
+            "question_id": 90950
+        },
+        {
+            "question": "What is the table made of?",
+            "image_id": 9095,
+            "question_id": 90951
+        },
+        {
+            "question": "What are the clocks made of?",
+            "image_id": 2591,
+            "question_id": 25912
+        },
+        {
+            "question": "How many clocks are there?",
+            "image_id": 2591,
+            "question_id": 25910
+        },
+        {
+            "question": "What are the clocks encased in?",
+            "image_id": 2591,
+            "question_id": 25911
+        },
+        {
+            "question": "What color is the t-shirt?",
+            "image_id": 3457,
+            "question_id": 34570
+        },
+        {
+            "question": "What color is the elephant?",
+            "image_id": 3457,
+            "question_id": 34571
+        },
+        {
+            "question": "Is the elephant bigger than the person?",
+            "image_id": 3457,
+            "question_id": 34572
+        },
+        {
+            "question": "What kind of cat is shown?",
+            "image_id": 9231,
+            "question_id": 92312
+        },
+        {
+            "question": "What color is the luggage?",
+            "image_id": 9231,
+            "question_id": 92310
+        },
+        {
+            "question": "Are Is this luggage scuffed up?",
+            "image_id": 9231,
+            "question_id": 92311
+        },
+        {
+            "question": "Where is the bag?",
+            "image_id": 5587,
+            "question_id": 55872
+        },
+        {
+            "question": "IS this a public or private space?",
+            "image_id": 5587,
+            "question_id": 55870
+        },
+        {
+            "question": "How many tiers are on the display rack?",
+            "image_id": 5587,
+            "question_id": 55871
+        },
+        {
+            "question": "Is this dog thirsty?",
+            "image_id": 8458,
+            "question_id": 84580
+        },
+        {
+            "question": "Is this a great Dane?",
+            "image_id": 8458,
+            "question_id": 84581
+        },
+        {
+            "question": "Is the dog male or female?",
+            "image_id": 8458,
+            "question_id": 84582
+        },
+        {
+            "question": "What color is the background?",
+            "image_id": 8761,
+            "question_id": 87610
+        },
+        {
+            "question": "What is this product?",
+            "image_id": 8761,
+            "question_id": 87611
+        },
+        {
+            "question": "Can you see any type of insect crawling around?",
+            "image_id": 8761,
+            "question_id": 87612
+        },
+        {
+            "question": "What is the number of the player?",
+            "image_id": 7596,
+            "question_id": 75960
+        },
+        {
+            "question": "What color is the man's uniform?",
+            "image_id": 7596,
+            "question_id": 75961
+        },
+        {
+            "question": "What is he holding in his hands?",
+            "image_id": 7596,
+            "question_id": 75962
+        },
+        {
+            "question": "Is the man walking?",
+            "image_id": 7996,
+            "question_id": 79960
+        },
+        {
+            "question": "How is the weather?",
+            "image_id": 7996,
+            "question_id": 79961
+        },
+        {
+            "question": "Are the ski bindings for downhill skiing?",
+            "image_id": 7996,
+            "question_id": 79962
+        },
+        {
+            "question": "What color is the pillow cover?",
+            "image_id": 4820,
+            "question_id": 48200
+        },
+        {
+            "question": "What animal is on the bed?",
+            "image_id": 4820,
+            "question_id": 48201
+        },
+        {
+            "question": "Where is the cat?",
+            "image_id": 4820,
+            "question_id": 48202
+        },
+        {
+            "question": "Who is a sponsor?",
+            "image_id": 2842,
+            "question_id": 28420
+        },
+        {
+            "question": "What color are the seats?",
+            "image_id": 2842,
+            "question_id": 28421
+        },
+        {
+            "question": "What sport are they playing?",
+            "image_id": 2842,
+            "question_id": 28422
+        }
+    ]
+}

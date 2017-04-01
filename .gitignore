@@ -4,4 +4,4 @@
 *.log
 logs
 vis
-data
+data/vqa/Images/

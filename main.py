@@ -1,8 +1,8 @@
 #!/usr/bin/env python2
 
 # check profiler
-if not isinstance(__builtins__, dict) or "profile" not in __builtins__:
-    __builtins__.__dict__["profile"] = lambda x: x
+#if not isinstance(__builtins__, dict) or "profile" not in __builtins__:
+#    __builtins__.__dict__["profile"] = lambda x: x
 
 from misc import util
 from misc.indices import QUESTION_INDEX, ANSWER_INDEX, MODULE_INDEX, MODULE_TYPE_INDEX, \
