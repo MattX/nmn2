@@ -30,9 +30,11 @@ def main():
         train_loss, train_acc, _ = \
                 do_iter(task.train, model, config, train=True)
         val_loss, val_acc, val_predictions = \
-                do_iter(task.val, model, config, vis=True)
+                0, 0, []
+        #        do_iter(task.val, model, config, vis=True)
         test_loss, test_acc, test_predictions = \
-                do_iter(task.test, model, config)
+                0, 0, []
+        #        do_iter(task.test, model, config)
 
         logging.info(
                 "%5d  |  %8.3f  %8.3f  %8.3f  |  %8.3f  %8.3f  %8.3f",
