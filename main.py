@@ -19,6 +19,7 @@ import logging.config
 import random
 import numpy as np
 import yaml
+import re
 
 def main():
     config = configure()
@@ -29,7 +30,7 @@ def main():
 
         logging.info(" Training set...")
         train_loss, train_acc, _ = \
-                do_iter(task.train, model, config, train=True)
+                do_iter(task.train, model, config, train=True, vis=True)
         val_loss, val_acc, val_predictions = \
                 do_iter(task.val, model, config, vis=True)
         test_loss, test_acc, test_predictions = \
@@ -215,18 +216,30 @@ def backward(data, model, config, train, vis):
 
 def visualize(batch_data, model):
     i_datum = 0
-    #mod_layout_choice = model.module_layout_choices[i_datum]
-    #print model.apollo_net.blobs.keys()
-    #att_blob_name = "Find_%d_softmax" % (mod_layout_choice * 100 + 1)
-    
+    mod_layout_choice = model.module_layout_choices[i_datum]
+    index = None
+    foundIndex = False
+    for key in model.apollo_net.blobs.keys():
+        search = re.search('Find_([\d]+)_copy', key)
+        if search != None:
+            index = int(search.group(1))
+            index -= mod_layout_choice * 100
+            if index > 0 and index < 100:
+                att_blob_name = "Find_%d_copy" % (mod_layout_choice*100 + index)
+                foundIndex = True
+                print att_blob_name
+                break
+
     datum = batch_data[i_datum]
     question = " ".join([QUESTION_INDEX.get(w) for w in datum.question[1:-1]]),
     preds = model.prediction_data[i_datum,:]
     top = np.argsort(preds)[-5:]
     top_answers = reversed([ANSWER_INDEX.get(p) for p in top])
-    #att_data = model.apollo_net.blobs[att_blob_name].data[i_datum,...]
-    #att_data = att_data.reshape((14, 14))
-    att_data = np.zeros((14, 14))
+    if index != None:
+        att_data = model.apollo_net.blobs[att_blob_name].data[i_datum,...]
+        att_data = att_data.reshape((14, 14))
+    else:
+        att_data = np.zeros((14, 14))
     chosen_parse = datum.parses[model.layout_ids[i_datum]]
     
     fields = [
