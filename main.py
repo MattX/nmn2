@@ -27,6 +27,7 @@ def main():
 
     for i_epoch in range(config.opt.iters):
 
+        logging.info(" Training set...")
         train_loss, train_acc, _ = \
                 do_iter(task.train, model, config, train=True)
         val_loss, val_acc, val_predictions = \
@@ -43,6 +44,7 @@ def main():
         with open("logs/val_predictions_%d.json" % i_epoch, "w") as pred_f:
             print >>pred_f, json.dumps(val_predictions)
 
+        model.apollo_net.save("saved_models/model_%d.caffemodel" % i_epoch)
         #with open("logs/test_predictions_%d.json" % i_epoch, "w") as pred_f:
         #    print >>pred_f, json.dumps(test_predictions)
 
@@ -100,6 +102,9 @@ def do_iter(task_set, model, config, train=False, vis=False):
         acc += batch_acc
         predictions += batch_preds
         n_batches += 1
+
+        if n_batches % 100 == 0:
+            logging.info("   Competed batch {}".format(n_batches))
 
         if vis:
             visualize(batch_data, model)
@@ -213,7 +218,7 @@ def visualize(batch_data, model):
     #mod_layout_choice = model.module_layout_choices[i_datum]
     #print model.apollo_net.blobs.keys()
     #att_blob_name = "Find_%d_softmax" % (mod_layout_choice * 100 + 1)
-    #
+    
     datum = batch_data[i_datum]
     question = " ".join([QUESTION_INDEX.get(w) for w in datum.question[1:-1]]),
     preds = model.prediction_data[i_datum,:]
