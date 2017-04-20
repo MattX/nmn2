@@ -28,8 +28,9 @@ def main():
 
     for i_epoch in range(config.opt.iters):
 
+        logging.info(" Training set...")
         train_loss, train_acc, _ = \
-                do_iter(task.train, model, config, train=True)
+                do_iter(task.train, model, config, train=True, vis=True)
         val_loss, val_acc, val_predictions = \
                 do_iter(task.val, model, config, vis=True)
         test_loss, test_acc, test_predictions = \
@@ -44,6 +45,7 @@ def main():
         with open("logs/val_predictions_%d.json" % i_epoch, "w") as pred_f:
             print >>pred_f, json.dumps(val_predictions)
 
+        model.apollo_net.save("saved_models/model_%d.caffemodel" % i_epoch)
         #with open("logs/test_predictions_%d.json" % i_epoch, "w") as pred_f:
         #    print >>pred_f, json.dumps(test_predictions)
 
@@ -101,6 +103,9 @@ def do_iter(task_set, model, config, train=False, vis=False):
         acc += batch_acc
         predictions += batch_preds
         n_batches += 1
+
+        if n_batches % 100 == 0:
+            logging.info("   Competed batch {}".format(n_batches))
 
         if vis:
             visualize(batch_data, model)
@@ -212,7 +217,6 @@ def backward(data, model, config, train, vis):
 def visualize(batch_data, model):
     i_datum = 0
     mod_layout_choice = model.module_layout_choices[i_datum]
-    #print model.apollo_net.blobs.keys()
     index = None
     foundIndex = False
     for key in model.apollo_net.blobs.keys():
