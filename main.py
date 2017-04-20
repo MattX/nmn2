@@ -223,7 +223,6 @@ def visualize(batch_data, model):
             if index > 0 and index < 100:
                 att_blob_name = "Find_%d_copy" % (mod_layout_choice*100 + index)
                 foundIndex = True
-                print att_blob_name
                 break
 
     datum = batch_data[i_datum]
@@ -231,7 +230,7 @@ def visualize(batch_data, model):
     preds = model.prediction_data[i_datum,:]
     top = np.argsort(preds)[-5:]
     top_answers = reversed([ANSWER_INDEX.get(p) for p in top])
-    if index != None:
+    if foundIndex != None:
         att_data = model.apollo_net.blobs[att_blob_name].data[i_datum,...]
         att_data = att_data.reshape((14, 14))
     else:
