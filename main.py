@@ -216,16 +216,17 @@ def backward(data, model, config, train, vis):
 
 def visualize(batch_data, model):
     i_datum = 0
-    mod_layout_choice = model.module_layout_choices[i_datum]
+    #mod_layout_choice = model.module_layout_choices[i_datum]
+    mod_layout_choice = model.module_batch_layouts[i_datum]
     index = None
     foundIndex = False
     for key in model.apollo_net.blobs.keys():
-        search = re.search('Find_([\d]+)_copy', key)
+        search = re.search('Find_([\d]+)_sigmoid', key)
         if search != None:
             index = int(search.group(1))
-            index -= mod_layout_choice * 100
+            index -= model.layout_index[mod_layout_choice] * 100
             if index > 0 and index < 100:
-                att_blob_name = "Find_%d_copy" % (mod_layout_choice*100 + index)
+                att_blob_name = "Find_%d_sigmoid" % (model.layout_index[mod_layout_choice]*100 + index)
                 foundIndex = True
                 break
 

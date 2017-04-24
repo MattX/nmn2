@@ -423,12 +423,15 @@ class NmnModel:
         self.opt_state = adadelta.State()
 
         self.nmns = dict()
-
+        self.layout_index = dict()
+        
         self.apollo_net = apollocaffe.ApolloNet()
 
     def get_nmn(self, modules):
         if modules not in self.nmns:
-            self.nmns[modules] = Nmn(len(self.nmns), modules, self.apollo_net)
+            index = len(self.nmns)
+            self.nmns[modules] = Nmn(index, modules, self.apollo_net)
+            self.layout_index[modules] = index
         return self.nmns[modules]
 
 
@@ -451,10 +454,12 @@ class NmnModel:
 
         module_layouts = list(set(l.modules for l in chosen_layouts))
         module_layout_choices = []
+        module_batch_layouts = []
         default_labels = [None for i in range(len(module_layouts))]
         for layout in chosen_layouts:
             choice = module_layouts.index(layout.modules)
             module_layout_choices.append(choice)
+            module_batch_layouts.append(layout.modules)
             if default_labels[choice] is None:
                 default_labels[choice] = layout.labels
         layout_label_data = []
@@ -469,6 +474,7 @@ class NmnModel:
         layout_mask = np.asarray(layout_mask)
 
         self.module_layout_choices = module_layout_choices
+        self.module_batch_layouts = module_batch_layouts
 
         # predict answer
 
