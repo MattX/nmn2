@@ -375,6 +375,38 @@ class ExistsModule(Module):
 
         return ip
 
+class MeasureModule(Module):
+    def forward(self, index, label_data, bottoms, features, rel_features, dropout, apollo_net):
+        assert len(bottoms) == 1   
+
+        mask = bottoms[0]
+
+        # Check size of mask
+        net = apollo_net
+
+        ip = "Measure_%d_ip" % index
+        ip_param_weight = "Measure_ip_param_weight"
+        ip_param_bias = "Measure_ip_param_bias"
+        predip = "Measure_%d_predip" % index
+        predip_param_weight = "Measure_predip_param_weight"
+        predip_param_bias = "Measure_predip_param_bias"
+        relu = "Measure_%d_relu" % index
+        softmax = "Measure_%d_softmax" % index
+        scale = "Measure_%d_scale" % index
+
+        net.f(InnerProduct(
+            ip, self.pred_size, bottoms=[mask],
+            param_names=[ip_param_weight, ip_param_bias]))
+
+        net.f(ReLU(relu, bottoms=[ip]))
+        net.f(InnerProduct(
+            predip, self.pred_size, bottoms=[relu],
+            param_names=[predip_param_weight, predip_param_bias]))
+
+        #net.f(Power(scale, scale=0.01, bottoms=[predip]))
+        net.f(Softmax(softmax, bottoms=[predip]))
+        return softmax
+
 class Nmn:
     def __init__(self, index, modules, apollo_net):
         self.index = index

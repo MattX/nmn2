@@ -3,7 +3,7 @@
 from misc.datum import Datum, Layout
 from misc.indices import QUESTION_INDEX, MODULE_INDEX, ANSWER_INDEX, UNK_ID
 from misc.parse import parse_tree
-from models.nmn import MLPFindModule, DescribeModule, ExistsModule, AndModule
+from models.nmn import MLPFindModule, DescribeModule, ExistsModule, AndModule, MeasureModule
 
 from collections import defaultdict
 import json
@@ -104,6 +104,8 @@ def parse_to_layout_helper(parse, config, modules):
     labels_below = tuple(labels_below)
     if head == "and":
         module_head = modules["and"]
+    elif head == "how_many":
+        module_head = modules["measure"]
     else:
         module_head = modules["describe"]
     label_head = MODULE_INDEX[head] or UNK_ID
@@ -135,7 +137,7 @@ class VqaDatum(Datum):
         if not os.path.exists(self.input_path):
             raise IOError("No such processed image: " + self.input_path)
         if not os.path.exists(self.input_path):
-            raise IOError("No such source image: " + self.image_paht)
+            raise IOError("No such source image: " + self.image_path)
 
     def load_features(self):
         with np.load(self.input_path) as zdata:
@@ -160,13 +162,14 @@ class VqaTask:
             "describe": DescribeModule(config.model),
             "exists": ExistsModule(config.model),
             "and": AndModule(config.model),
+            "measure": MeasureModule(config.model),
         }
 
         mean, std = compute_normalizers(config.task)
         logging.debug("computed image feature normalizers")
         logging.debug("using %s chooser", config.task.chooser)
 
-        self.train = VqaTaskSet(config.task, ["train2014", "val2014"], modules, mean, std)
+        self.train = VqaTaskSet(config.task, ["train2014"], modules, mean, std)
         self.val = VqaTaskSet(config.task, ["test-dev2015"], modules, mean, std)
         self.test = VqaTaskSet(config.task, ["test2015"], modules, mean, std)
 
@@ -192,7 +195,7 @@ class VqaTaskSet:
         logging.info("%d answers", len(ANSWER_INDEX))
         logging.info("%d predicates", len(MODULE_INDEX))
         logging.info("%d words", len(QUESTION_INDEX))
-        #logging.info("%d layouts", len(self.layout_types))
+        logging.info("%d layouts", len(self.layout_types))
         logging.info("")
 
     def load_set(self, config, set_name, size, modules, mean, std):
