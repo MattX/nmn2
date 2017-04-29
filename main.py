@@ -6,7 +6,7 @@
 
 from misc import util
 from misc.indices import QUESTION_INDEX, ANSWER_INDEX, MODULE_INDEX, MODULE_TYPE_INDEX, \
-        NULL, NULL_ID, UNK_ID
+        NULL, NULL_ID, UNK_ID, NULL_CAP_ID, UNK_CAP_ID
 from misc.visualizer import visualizer
 import models
 from models.nmn import MLPFindModule, MultiplicativeFindModule
@@ -147,6 +147,7 @@ def forward(data, model, config, train, vis):
 
     # load batch data
     max_len = max(len(d.question) for d in data)
+    max_len_cap = max(len(d.caption) for d in data)
     max_layouts = max(len(d.layouts) for d in data)
     channels, size, trailing = data[0].load_features().shape
     assert trailing == 1
@@ -155,6 +156,7 @@ def forward(data, model, config, train, vis):
         rel_channels, size_1, size_2 = data[0].load_rel_features().shape
         assert size_1 == size_2 == size
     questions = np.ones((config.opt.batch_size, max_len)) * NULL_ID
+    captions = np.ones((config.opt.batch_size, max_len_cap)) * NULL_CAP_ID
     features = np.zeros((config.opt.batch_size, channels, size, 1))
     if has_rel_features:
         rel_features = np.zeros((config.opt.batch_size, rel_channels, size, size))
@@ -164,6 +166,7 @@ def forward(data, model, config, train, vis):
             (config.opt.batch_size, max_layouts, len(MODULE_INDEX) + 7))
     for i, datum in enumerate(data):
         questions[i, max_len-len(datum.question):] = datum.question
+        captions[i, max_len_cap-len(datum.caption):] = datum.caption
         features[i, ...] = datum.load_features()
         if has_rel_features:
             rel_features[i, ...] = datum.load_rel_features()
@@ -172,7 +175,7 @@ def forward(data, model, config, train, vis):
 
     # apply model
     model.forward(
-            layouts, layout_reprs, questions, features, rel_features, 
+            layouts, layout_reprs, questions, captions, features, rel_features,
             dropout=(train and config.opt.dropout), deterministic=not train)
 
     # extract predictions
@@ -225,7 +228,7 @@ def visualize(batch_data, model):
         if search != None:
             index = int(search.group(1))
             index -= model.layout_index[mod_layout_choice] * 100
-            if index > 0 and index < 100:
+            if index >= 0 and index < 100:
                 att_blob_name = "Find_%d_sigmoid" % (model.layout_index[mod_layout_choice]*100 + index)
                 foundIndex = True
                 break

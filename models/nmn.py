@@ -1,5 +1,5 @@
 from layers.reinforce import Index, AsLoss
-from misc.indices import QUESTION_INDEX, MODULE_INDEX, ANSWER_INDEX, UNK_ID
+from misc.indices import QUESTION_INDEX, MODULE_INDEX, ANSWER_INDEX, UNK_ID, CAPTION_INDEX
 from misc import util
 from opt import adadelta
 
@@ -395,7 +395,7 @@ class MeasureModule(Module):
         scale = "Measure_%d_scale" % index
 
         net.f(InnerProduct(
-            ip, self.pred_size, bottoms=[mask],
+            ip, self.config.att_hidden, bottoms=[mask],
             param_names=[ip_param_weight, ip_param_bias]))
 
         net.f(ReLU(relu, bottoms=[ip]))
@@ -404,6 +404,7 @@ class MeasureModule(Module):
             param_names=[predip_param_weight, predip_param_bias]))
 
         #net.f(Power(scale, scale=0.01, bottoms=[predip]))
+        net.f(Power(scale, scale=1, power= 5, bottoms=[predip]))
         net.f(Softmax(softmax, bottoms=[predip]))
         return softmax
 
@@ -467,12 +468,13 @@ class NmnModel:
         return self.nmns[modules]
 
 
-    def forward(self, layouts, layout_data, question_data, features_data,
+    def forward(self, layouts, layout_data, question_data, caption_data, features_data,
             rel_features_data, dropout, deterministic):
 
         # predict layout
 
         question_hidden = self.forward_question(question_data, dropout)
+        caption_hidden = self.forward_caption(caption_data, dropout)
         layout_ids, layout_probs = \
                 self.forward_layout(question_hidden, layouts, layout_data,
                         deterministic)
@@ -527,7 +529,7 @@ class NmnModel:
             nmn_outputs.append(nmn.outputs)
 
         chosen_hidden = self.forward_choice(module_layouts, layout_mask, nmn_hiddens)
-        self.prediction = self.forward_pred(question_hidden, chosen_hidden)
+        self.prediction = self.forward_pred(question_hidden, caption_hidden, chosen_hidden)
 
         batch_size = self.apollo_net.blobs[nmn_hiddens[0]].shape[0]
         self.prediction_data = self.apollo_net.blobs[self.prediction].data
@@ -708,7 +710,63 @@ class NmnModel:
 
         return final_hidden
 
-    def forward_pred(self, question_hidden, nmn_hidden):
+    def forward_caption(self, caption_data, dropout):
+        net = self.apollo_net
+        batch_size, length = caption_data.shape
+
+        wordvec_param = "CAPTION_wordvec_param"
+        input_value_param = "CAPTION_input_value_param"
+        input_gate_param = "CAPTION_input_gate_param"
+        forget_gate_param = "CAPTION_forget_gate_param"
+        output_gate_param = "CAPTION_output_gate_param"
+
+        seed = "CAPTION_lstm_seed"
+        caption_dropout = "CAPTION_lstm_dropout"
+        final_hidden = "CAPTION_lstm_final_hidden"
+
+        prev_hidden = seed
+        prev_mem = seed
+
+        net.f(NumpyData(seed, np.zeros((batch_size, self.config.lstm_hidden))))
+
+        for t in range(length):
+            word = "CAPTION_lstm_word_%d" % t
+            wordvec = "CAPTION_lstm_wordvec_%d" % t
+            concat = "CAPTION_lstm_concat_%d" % t
+            lstm = "CAPTION_lstm_unit_%d" % t
+
+            hidden = "CAPTION_lstm_hidden_%d" % t
+            mem = "CAPTION_lstm_mem_%d" % t
+
+            net.f(NumpyData(word, caption_data[:,t]))
+            net.f(Wordvec(
+                    wordvec, self.config.lstm_hidden, len(CAPTION_INDEX),
+                    bottoms=[word], param_names=[wordvec_param]))
+            net.f(Concat(concat, bottoms=[prev_hidden, wordvec]))
+            net.f(LstmUnit(
+                    lstm, self.config.lstm_hidden, bottoms=[concat, prev_mem],
+                    param_names=[input_value_param, input_gate_param,
+                                forget_gate_param, output_gate_param],
+                    tops=[hidden, mem]))
+
+            prev_hidden = hidden
+            prev_mem = mem
+
+        # TODO consolidate with module?
+        if hasattr(self.config, "pred_hidden"):
+            pred_size = self.config.pred_hidden
+        else:
+            pred_size = len(ANSWER_INDEX)
+
+        if dropout:
+            net.f(Dropout(caption_dropout, 0.5, bottoms=[prev_hidden]))
+            net.f(InnerProduct(final_hidden, pred_size, bottoms=[caption_dropout]))
+        else:
+            net.f(InnerProduct(final_hidden, pred_size, bottoms=[prev_hidden]))
+
+        return final_hidden
+
+    def forward_pred(self, question_hidden, caption_hidden, nmn_hidden):
         net = self.apollo_net
 
         relu = "PRED_relu"
@@ -716,7 +774,9 @@ class NmnModel:
 
         if self.config.combine_question:
             sum = "PRED_sum"
-            net.f(Eltwise(sum, "SUM", bottoms=[question_hidden, nmn_hidden]))
+            sum_qc = "PRED_sum_ques_cap"
+            net.f(Eltwise(sum_qc, "SUM", bottoms=[question_hidden, caption_hidden]))
+            net.f(Eltwise(sum, "SUM", bottoms=[sum_qc, nmn_hidden]))
         else:
             sum = nmn_hidden
 

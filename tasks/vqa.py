@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 
 from misc.datum import Datum, Layout
-from misc.indices import QUESTION_INDEX, MODULE_INDEX, ANSWER_INDEX, UNK_ID
+from misc.indices import QUESTION_INDEX, MODULE_INDEX, ANSWER_INDEX, CAPTION_INDEX, UNK_ID, UNK_CAP_ID
 from misc.parse import parse_tree
 from models.nmn import MLPFindModule, DescribeModule, ExistsModule, AndModule, MeasureModule
 
@@ -13,6 +13,7 @@ import os
 import re
 
 QUESTION_FILE = "data/vqa/Questions/OpenEnded_mscoco_%s_questions.json"
+CAPTION_FILE = "data/vqa/Captions/OpenEnded_mscoco_%s_captions.json"
 SINGLE_PARSE_FILE = "data/vqa/Questions/%s.sp"
 MULTI_PARSE_FILE = "data/vqa/Questions/%s.sps2"
 ANN_FILE = "data/vqa/Annotations/mscoco_%s_annotations.json"
@@ -29,6 +30,11 @@ def proc_question(question):
     words = ["<s>"] + words + ["</s>"]
     return words
 
+def proc_caption(caption):
+    words = caption.lower().strip().split()
+    words = ["<s>"] + words + ["</s>"]
+    return words
+
 def prepare_indices(config):
     set_name = "train2014"
 
@@ -42,6 +48,17 @@ def prepare_indices(config):
     for word, count in word_counts.items():
         if count >= MIN_COUNT:
             QUESTION_INDEX.index(word)
+
+    word_counts = defaultdict(lambda: 0)
+    with open(CAPTION_FILE % set_name) as caption_f:
+        captions = json.load(caption_f)["captions"]
+        for image_id, caption in captions.iteritems():
+            words = proc_caption(caption)
+            for word in words:
+                word_counts[word] += 1
+    for word, count in word_counts.items():
+        if count >= MIN_COUNT:
+            CAPTION_INDEX.index(word)
 
     pred_counts = defaultdict(lambda: 0)
     with open(MULTI_PARSE_FILE % set_name) as parse_f:
@@ -104,8 +121,8 @@ def parse_to_layout_helper(parse, config, modules):
     labels_below = tuple(labels_below)
     if head == "and":
         module_head = modules["and"]
-    elif head == "how_many":
-        module_head = modules["measure"]
+    #elif head == "how_many":
+    #    module_head = modules["measure"]
     else:
         module_head = modules["describe"]
     label_head = MODULE_INDEX[head] or UNK_ID
@@ -118,10 +135,11 @@ def parse_to_layout(parse, config, modules):
     return Layout(modules, indices)
 
 class VqaDatum(Datum):
-    def __init__(self, id, question, parses, layouts, input_set, input_id, answers, mean, std):
+    def __init__(self, id, question, caption, parses, layouts, input_set, input_id, answers, mean, std):
         Datum.__init__(self)
         self.id = id
         self.question = question
+        self.caption = caption
         self.parses = parses
         self.layouts = layouts
         self.input_set = input_set
@@ -170,8 +188,10 @@ class VqaTask:
         logging.debug("using %s chooser", config.task.chooser)
 
         self.train = VqaTaskSet(config.task, ["train2014"], modules, mean, std)
-        self.val = VqaTaskSet(config.task, ["test-dev2015"], modules, mean, std)
-        self.test = VqaTaskSet(config.task, ["test2015"], modules, mean, std)
+        #self.val = VqaTaskSet(config.task, ["test-dev2015"], modules, mean, std)
+        self.val = VqaTaskSet(config.task, ["val2014"], modules, mean, std)
+        #self.test = VqaTaskSet(config.task, ["test2015"], modules, mean, std)
+        self.test = VqaTaskSet(config.task, ["test-dev2015"], modules, mean, std)
 
 class VqaTaskSet:
     def __init__(self, config, set_names, modules, mean, std):
@@ -200,6 +220,8 @@ class VqaTaskSet:
 
     def load_set(self, config, set_name, size, modules, mean, std):
         parse_file = MULTI_PARSE_FILE
+        caption_f = open(CAPTION_FILE % set_name)
+        captions = json.load(caption_f)["captions"]
         with open(QUESTION_FILE % set_name) as question_f, \
              open(parse_file % set_name) as parse_f:
             questions = json.load(question_f)["questions"]
@@ -231,9 +253,14 @@ class VqaTaskSet:
 
                 layouts = [parse_to_layout(p, config, modules) for p in parses]
                 image_id = question["image_id"]
+
+                # Indexing the caption for an image
+                caption_str = proc_caption(captions[str(image_id)])
+                indexed_caption = \
+                    [CAPTION_INDEX[w] or UNK_CAP_ID for w in caption_str]
                 try:
                     image_set_name = "test2015" if set_name == "test-dev2015" else set_name
-                    datum = VqaDatum(id, indexed_question, parses, layouts, image_set_name, image_id, [], mean, std)
+                    datum = VqaDatum(id, indexed_question, indexed_caption, parses, layouts, image_set_name, image_id, [], mean, std)
                     self.by_id[id] = datum
                 except IOError as e:
                     print e
