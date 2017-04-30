@@ -474,7 +474,7 @@ class NmnModel:
         # predict layout
 
         question_hidden = self.forward_question(question_data, dropout)
-        caption_hidden = self.forward_caption(caption_data, dropout)
+        caption_hidden = self.forward_caption_attention(caption_data, dropout)
         layout_ids, layout_probs = \
                 self.forward_layout(question_hidden, layouts, layout_data,
                         deterministic)
@@ -529,7 +529,7 @@ class NmnModel:
             nmn_outputs.append(nmn.outputs)
 
         chosen_hidden = self.forward_choice(module_layouts, layout_mask, nmn_hiddens)
-        self.prediction = self.forward_pred(question_hidden, caption_hidden, chosen_hidden)
+        self.prediction = self.forward_pred_caption_attention(question_hidden, caption_hidden, chosen_hidden)
 
         batch_size = self.apollo_net.blobs[nmn_hiddens[0]].shape[0]
         self.prediction_data = self.apollo_net.blobs[self.prediction].data
@@ -740,7 +740,7 @@ class NmnModel:
 
             net.f(NumpyData(word, caption_data[:,t]))
             net.f(Wordvec(
-                    wordvec, self.config.lstm_hidden, len(CAPTION_INDEX),
+                    wordvec, self.config.cap_hidden, len(CAPTION_INDEX),
                     bottoms=[word], param_names=[wordvec_param]))
             net.f(Concat(concat, bottoms=[prev_hidden, wordvec]))
             net.f(LstmUnit(
@@ -766,6 +766,91 @@ class NmnModel:
 
         return final_hidden
 
+
+    def forward_caption_attention(self, caption_data, dropout):
+        net = self.apollo_net
+
+        batch_size, caption_length = caption_data.shape
+
+        wordvec_param = "CAPTION_wordvec_param"
+
+        wordvec_names = []
+        embeddings = []
+        for t in range(caption_length):
+            word = "CAPTION_word_%d" % t
+            wordvec = "CAPTION_wordvec_%d" % t
+
+            net.f(NumpyData(word, caption_data[:, t]))
+            net.f(Wordvec(
+                wordvec, self.config.cap_hidden, len(CAPTION_INDEX),
+                bottoms=[word], param_names=[wordvec_param]
+            ))
+            wordvec_names.append(wordvec)
+            embeddings.append(net.blobs[wordvec].data)
+
+        # H = tanh(W*C)
+        # alpha = softmax(W * H)
+        # context vector = sum(alpha, words)
+
+        # Check for K size (=200)
+
+        features = []
+        ip_param_weight = "CAPTION_ip_param_weight"
+        ip_param_bias = "CAPTION_ip_param_bias"
+        for t in range(caption_length):
+            ip = "CAPTION_ip_%d" % (t)
+            scale = "CAPTION_scale_%d" % (t)
+            net.f(InnerProduct(
+                ip, 200, bottoms=[wordvec_names[t]],
+                param_names=[ip_param_weight, ip_param_bias]))
+
+            net.f(Sigmoid(scale, bottoms=[ip]))
+            features.append(net.blobs[scale].data)
+
+        features = np.array(features).reshape((batch_size, 200, caption_length))
+
+
+        concat_bottoms = []
+        for t in range(caption_length):
+            ip2 = "CAPTION_ip2_%d" % t
+            ip2_param_weight = "CAPTION_ip2_param_weight"
+            ip2_param_bias = "CAPTION_ip2_param_bias"
+
+            feature_data_label = "CAPTION_feature_data_%d" % t
+            net.f(NumpyData(feature_data_label, features[:, :, t]))
+            net.f(InnerProduct(
+                ip2, 1, bottoms=[feature_data_label],
+                param_names=[ip2_param_weight, ip2_param_bias]))
+
+            concat_bottoms.append(ip2)
+
+        concat = "CAPTION_concat"
+        softmax = "CAPTION_softmax"
+        net.f(Concat(concat, axis=1, bottoms=concat_bottoms))
+        net.f(Softmax(softmax, bottoms=[concat]))
+
+        embeddings = np.array(embeddings).reshape((batch_size, self.config.cap_hidden, caption_length))
+
+
+        context = "CAPTION_context"
+        predip = "CAPTION_predip"
+        predip_param_weight = "CAPTION_predip_param_weight"
+        predip_param_bias = "CAPTION_predip_param_bias"
+        copy = "CAPTION_copy"
+        context_vector = np.zeros((batch_size, self.config.cap_hidden))
+        for b in range(batch_size):
+            context_vector[b] = np.dot(embeddings[b], net.blobs[softmax].data[b])
+
+        net.f(NumpyData(context, context_vector))
+        net.f(InnerProduct(
+            predip, self.config.pred_hidden, bottoms=[context],
+            param_names=[predip_param_weight, predip_param_bias]))
+
+        net.f(Sigmoid(copy, bottoms=[predip]))
+        return copy
+
+
+
     def forward_pred(self, question_hidden, caption_hidden, nmn_hidden):
         net = self.apollo_net
 
@@ -782,6 +867,27 @@ class NmnModel:
 
         if hasattr(self.config, "pred_hidden"):
             net.f(ReLU(relu, bottoms=[sum]))
+            net.f(InnerProduct(ip, len(ANSWER_INDEX), bottoms=[relu]))
+            return ip
+        else:
+            return sum
+
+    def forward_pred_caption_attention(self, question_hidden, caption_hidden, nmn_hidden):
+        net = self.apollo_net
+
+        relu = "PRED_relu"
+        ip = "PRED_ip"
+
+        if self.config.combine_question:
+            sum = "PRED_sum"
+            prod = "PRED_prod"
+            net.f(Eltwise(sum, "SUM", bottoms=[question_hidden, nmn_hidden]))
+            net.f(Eltwise(prod, "PROD", bottoms=[sum, caption_hidden]))
+        else:
+            sum = nmn_hidden
+
+        if hasattr(self.config, "pred_hidden"):
+            net.f(ReLU(relu, bottoms=[prod]))
             net.f(InnerProduct(ip, len(ANSWER_INDEX), bottoms=[relu]))
             return ip
         else:
