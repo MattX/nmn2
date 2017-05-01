@@ -475,6 +475,7 @@ class NmnModel:
 
         question_hidden, question_hidden_lstm = self.forward_question(question_data, dropout)
         caption_hidden = self.forward_caption_attention(caption_data, dropout, question_hidden_lstm)
+        '''
         layout_ids, layout_probs = \
                 self.forward_layout(question_hidden, layouts, layout_data,
                         deterministic)
@@ -509,9 +510,10 @@ class NmnModel:
 
         self.module_layout_choices = module_layout_choices
         self.module_batch_layouts = module_batch_layouts
-
+        '''
         # predict answer
 
+        '''
         features = self.forward_features(0, features_data, dropout)
         if rel_features_data is not None:
             rel_features = self.forward_features(1, rel_features_data, dropout)
@@ -534,6 +536,11 @@ class NmnModel:
         batch_size = self.apollo_net.blobs[nmn_hiddens[0]].shape[0]
         self.prediction_data = self.apollo_net.blobs[self.prediction].data
         self.att_data = np.zeros((batch_size, 14, 14))
+
+        '''
+        self.prediction = self.forward_pred_caption_attention(question_hidden, caption_hidden)
+        self.prediction_data = self.apollo_net.blobs[self.prediction].data
+
 
     def forward_choice(self, module_layouts, layout_mask, nmn_hiddens):
         net = self.apollo_net
@@ -883,7 +890,7 @@ class NmnModel:
         else:
             return sum
 
-    def forward_pred_caption_attention(self, question_hidden, caption_hidden, nmn_hidden):
+    def forward_pred_caption_attention(self, question_hidden, caption_hidden):
         net = self.apollo_net
 
         relu = "PRED_relu"
@@ -892,8 +899,9 @@ class NmnModel:
         if self.config.combine_question:
             sum = "PRED_sum"
             sum_out = "PRED_prod"
-            net.f(Eltwise(sum, "SUM", bottoms=[question_hidden, nmn_hidden]))
-            net.f(Eltwise(sum_out, "SUM", bottoms=[sum, caption_hidden]))
+            #net.f(Eltwise(sum, "SUM", bottoms=[question_hidden, nmn_hidden]))
+            #net.f(Eltwise(sum_out, "SUM", bottoms=[sum, caption_hidden]))
+            net.f(Eltwise(sum_out, "SUM", bottoms=[question_hidden, caption_hidden]))
         else:
             sum = nmn_hidden
 
@@ -964,6 +972,6 @@ class NmnModel:
         self.question_hidden = None
 
     def train(self):
-        self.reinforce_layout(self.cumulative_datum_losses)
+        #self.reinforce_layout(self.cumulative_datum_losses)
         self.apollo_net.backward()
         adadelta.update(self.apollo_net, self.opt_state, self.opt_config)

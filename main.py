@@ -32,7 +32,7 @@ def main():
         train_loss, train_acc, _ = \
                 do_iter(task.train, model, config, train=True)
         val_loss, val_acc, val_predictions = \
-                do_iter(task.val, model, config, vis=True)
+                do_iter(task.val, model, config, vis=False)
         test_loss, test_acc, test_predictions = \
                 do_iter(task.test, model, config)
 
