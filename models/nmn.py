@@ -473,8 +473,8 @@ class NmnModel:
 
         # predict layout
 
-        question_hidden = self.forward_question(question_data, dropout)
-        caption_hidden = self.forward_caption_attention(caption_data, dropout)
+        question_hidden, question_hidden_lstm = self.forward_question(question_data, dropout)
+        caption_hidden = self.forward_caption_attention(caption_data, dropout, question_hidden_lstm)
         layout_ids, layout_probs = \
                 self.forward_layout(question_hidden, layouts, layout_data,
                         deterministic)
@@ -708,7 +708,7 @@ class NmnModel:
         else:
             net.f(InnerProduct(final_hidden, pred_size, bottoms=[prev_hidden]))
 
-        return final_hidden
+        return final_hidden, prev_hidden
 
     def forward_caption(self, caption_data, dropout):
         net = self.apollo_net
@@ -766,13 +766,22 @@ class NmnModel:
 
         return final_hidden
 
-
-    def forward_caption_attention(self, caption_data, dropout):
+    def forward_caption_attention(self, caption_data, dropout, question_hidden):
         net = self.apollo_net
 
         batch_size, caption_length = caption_data.shape
 
         wordvec_param = "CAPTION_wordvec_param"
+        question = "CAPTION_ques"
+        question_param_weight = "CAPTION_ques_param_weight"
+        question_param_bias = "CAPTION_ques_param_bias"
+        question_sigmoid = "CAPTION_ques_sigmoid"
+
+        net.f(InnerProduct(
+            question, 200, bottoms=[question_hidden],
+            param_names=[question_param_weight, question_param_bias]))
+
+        net.f(Sigmoid(question_sigmoid, bottoms=[question]))
 
         wordvec_names = []
         embeddings = []
@@ -800,12 +809,14 @@ class NmnModel:
         for t in range(caption_length):
             ip = "CAPTION_ip_%d" % (t)
             scale = "CAPTION_scale_%d" % (t)
+            ques_prod = "CAPTION_prod_%d" % t
             net.f(InnerProduct(
                 ip, 200, bottoms=[wordvec_names[t]],
                 param_names=[ip_param_weight, ip_param_bias]))
 
             net.f(Sigmoid(scale, bottoms=[ip]))
-            features.append(net.blobs[scale].data)
+            net.f(Eltwise(ques_prod, "PROD", bottoms=[question_sigmoid, scale]))
+            features.append(net.blobs[ques_prod].data)
 
         features = np.array(features).reshape((batch_size, 200, caption_length))
 
@@ -860,8 +871,8 @@ class NmnModel:
         if self.config.combine_question:
             sum = "PRED_sum"
             sum_qc = "PRED_sum_ques_cap"
-            net.f(Eltwise(sum_qc, "SUM", bottoms=[question_hidden, caption_hidden]))
-            net.f(Eltwise(sum, "SUM", bottoms=[sum_qc, nmn_hidden]))
+            net.f(Eltwise(sum_qc, "SUM", bottoms=[question_hidden, nmn_hidden]))
+            net.f(Eltwise(sum, "SUM", bottoms=[sum_qc, caption_hidden]))
         else:
             sum = nmn_hidden
 
@@ -880,14 +891,14 @@ class NmnModel:
 
         if self.config.combine_question:
             sum = "PRED_sum"
-            prod = "PRED_prod"
+            sum_out = "PRED_prod"
             net.f(Eltwise(sum, "SUM", bottoms=[question_hidden, nmn_hidden]))
-            net.f(Eltwise(prod, "PROD", bottoms=[sum, caption_hidden]))
+            net.f(Eltwise(sum_out, "SUM", bottoms=[sum, caption_hidden]))
         else:
             sum = nmn_hidden
 
         if hasattr(self.config, "pred_hidden"):
-            net.f(ReLU(relu, bottoms=[prod]))
+            net.f(ReLU(relu, bottoms=[sum_out]))
             net.f(InnerProduct(ip, len(ANSWER_INDEX), bottoms=[relu]))
             return ip
         else:
